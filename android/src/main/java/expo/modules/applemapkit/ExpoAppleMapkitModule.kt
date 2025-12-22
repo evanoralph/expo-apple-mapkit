@@ -36,6 +36,12 @@ class ExpoAppleMapkitModule : Module() {
       ))
     }
 
+    // Defines a JavaScript function to get routes between two coordinates
+    // Note: Apple MapKit is iOS-only, so this returns an error on Android
+    AsyncFunction("getRoute") { origin: Map<String, Any>, destination: Map<String, Any>, options: Map<String, Any>? ->
+      throw Exception("getRoute is not supported on Android. Apple MapKit is iOS-only.")
+    }
+
     // Enables the module to be used as a native view. Definition components that are accepted as part of
     // the view definition: Prop, Events.
     View(ExpoAppleMapkitView::class) {

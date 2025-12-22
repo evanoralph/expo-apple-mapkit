@@ -1,11 +1,11 @@
 import { requireNativeView } from 'expo';
 import * as React from 'react';
 
-import { ExpoAppleMapkitViewProps } from './ExpoAppleMapkit.types';
 
-const NativeView: React.ComponentType<ExpoAppleMapkitViewProps> =
+
+const NativeView: React.ComponentType<any> =
   requireNativeView('ExpoAppleMapkit');
 
-export default function ExpoAppleMapkitView(props: ExpoAppleMapkitViewProps) {
+export default function ExpoAppleMapkitView(props: any) {
   return <NativeView {...props} />;
 }

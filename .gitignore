@@ -55,3 +55,6 @@ yarn-error.log
 
 # Expo
 .expo/*
+
+# Log changes
+log-changes/
