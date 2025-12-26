@@ -68,12 +68,41 @@ export interface Route {
   advisoryNotices?: string[];
 }
 
+export interface ReverseGeocodeResult {
+  formattedAddress: string;
+  placemark: {
+    coordinate: {
+      latitude: number;
+      longitude: number;
+    };
+    countryCode: string;
+    postalCode: string;
+    administrativeArea: string;
+    subAdministrativeArea: string;
+    locality: string;
+    subLocality: string;
+    thoroughfare: string;
+    subThoroughfare: string;
+    country: string;
+    name: string;
+    region?: {
+      center: {
+        latitude: number;
+        longitude: number;
+      };
+      radius: number;
+    };
+    timeZone?: string;
+  };
+}
+
 declare class ExpoAppleMapkitModule extends NativeModule<any> {
   PI: number;
   hello(): string;
   setValueAsync(value: string): Promise<void>;
   searchLocation(query: string, options?: LocationSearchOptions): Promise<LocationSearchResult[]>;
   getRoute(origin: Coordinate, destination: Coordinate, options?: RouteOptions): Promise<Route[]>;
+  reverseGeocode(coordinate: Coordinate): Promise<ReverseGeocodeResult | null>;
 }
 
 // This call loads the native module object from the JSI.

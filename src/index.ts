@@ -1,4 +1,4 @@
-import ExpoAppleMapkitModule, { LocationSearchRegion, LocationSearchResult, LocationSearchOptions, Coordinate, RouteOptions, Route } from './ExpoAppleMapkitModule';
+import ExpoAppleMapkitModule, { LocationSearchRegion, LocationSearchResult, LocationSearchOptions, Coordinate, RouteOptions, Route, ReverseGeocodeResult } from './ExpoAppleMapkitModule';
 
 export function getMapkitToken() {
     return ExpoAppleMapkitModule.hello();
@@ -54,4 +54,28 @@ export async function getRoute(
     }
 }
 
-export type { LocationSearchRegion, LocationSearchResult, LocationSearchOptions, Coordinate, RouteOptions, Route };
+export async function reverseGeocode(
+    coordinate: Coordinate
+): Promise<ReverseGeocodeResult | null> {
+    try {
+        if (!coordinate || typeof coordinate.latitude !== 'number' || typeof coordinate.longitude !== 'number') {
+            throw new Error('Invalid coordinates');
+        }
+        
+        // Validate coordinate ranges
+        if (coordinate.latitude < -90 || coordinate.latitude > 90) {
+            throw new Error('Latitude must be between -90 and 90');
+        }
+        
+        if (coordinate.longitude < -180 || coordinate.longitude > 180) {
+            throw new Error('Longitude must be between -180 and 180');
+        }
+        
+        return await ExpoAppleMapkitModule.reverseGeocode(coordinate);
+    } catch (error) {
+        console.error('Error reverse geocoding:', error);
+        throw error;
+    }
+}
+
+export type { LocationSearchRegion, LocationSearchResult, LocationSearchOptions, Coordinate, RouteOptions, Route, ReverseGeocodeResult };
