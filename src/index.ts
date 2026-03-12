@@ -1,4 +1,5 @@
 import ExpoAppleMapkitModule, { LocationSearchRegion, LocationSearchResult, LocationSearchOptions, Coordinate, RouteOptions, Route, ReverseGeocodeResult } from './ExpoAppleMapkitModule';
+import ExpoAppleMapkitView, { ExpoAppleMapkitViewProps } from './ExpoAppleMapkitView';
 
 export function getMapkitToken() {
     return ExpoAppleMapkitModule.hello();
@@ -79,3 +80,5 @@ export async function reverseGeocode(
 }
 
 export type { LocationSearchRegion, LocationSearchResult, LocationSearchOptions, Coordinate, RouteOptions, Route, ReverseGeocodeResult };
+export { ExpoAppleMapkitView };
+export type { ExpoAppleMapkitViewProps };

@@ -1,25 +1,60 @@
-import { useEvent } from 'expo';
-import {getMapkitToken, LocationSearchOptions, LocationSearchResult, searchLocation, getRoute, Coordinate, RouteOptions} from 'expo-apple-mapkit';
-import { useEffect, useState } from 'react';
+import {
+  LocationSearchOptions,
+  LocationSearchResult,
+  searchLocation,
+  getRoute,
+  ExpoAppleMapkitView,
+  Coordinate,
+  RouteOptions,
+  Route,
+  reverseGeocode,
+  ReverseGeocodeResult,
+} from 'expo-apple-mapkit';
+import { useState } from 'react';
 import { Button, SafeAreaView, ScrollView, Text, TextInput, View, StyleSheet } from 'react-native';
 
 export default function App() {
   const [results, setResults] = useState<LocationSearchResult[]>([]);
   const [query, setQuery] = useState('');
+  const [reverseGeocodeResult, setReverseGeocodeResult] = useState<ReverseGeocodeResult | null>(null);
+  const [latitude, setLatitude] = useState('15.152870');
+  const [longitude, setLongitude] = useState('120.599335');
+  const [routes, setRoutes] = useState<Route[]>([]);
+  const [routeCoordinates, setRouteCoordinates] = useState<Coordinate[]>([]);
+  const [routeError, setRouteError] = useState<string | null>(null);
+  const [isRouteLoading, setIsRouteLoading] = useState(false);
+  const routeOrigin: Coordinate = { latitude: 15.1694, longitude: 120.5807 };
+  const routeDestination: Coordinate = { latitude: 15.1529, longitude: 120.5993 };
+  const routeStops: Coordinate[] = [
+    { latitude: 15.1645, longitude: 120.5858 },
+    { latitude: 15.1586, longitude: 120.5922 },
+  ];
 
 
   const getRouteHandler = async () => {
-    const route = await getRoute(
-      { latitude: 15.152870, longitude: 120.599335 } as Coordinate,
-      { latitude: 15.152870, longitude: 120.599335 } as Coordinate,
-      { transportType: 'automobile' } as RouteOptions
-    );
-    console.log('Route:', JSON.stringify(route, null, 2));
-  };
+    setIsRouteLoading(true);
+    setRouteError(null);
+    setRoutes([]);
+    setRouteCoordinates([]);
 
-  useEffect(() => {
-    getRouteHandler();
-  }, []);
+    try {
+      // Example multi-stop route in Pampanga, Philippines.
+      const routeOptions: RouteOptions = {
+        transportType: 'automobile',
+        requestsAlternateRoutes: true,
+        stops: routeStops,
+      };
+      const routeResults = await getRoute(routeOrigin, routeDestination, routeOptions);
+      console.log('Route:', JSON.stringify(routeResults, null, 2));
+      setRoutes(routeResults);
+      setRouteCoordinates(routeResults[0]?.polyline ?? []);
+    } catch (error) {
+      console.error('Get route error:', error);
+      setRouteError(error instanceof Error ? error.message : 'Unable to fetch route');
+    } finally {
+      setIsRouteLoading(false);
+    }
+  };
   
   // Sample coordinates: Latitude: 15.152870, Longitude: 120.599335
   const defaultOptions: LocationSearchOptions = {
@@ -40,6 +75,25 @@ export default function App() {
       setResults(searchResults);
     } catch (error) {
       console.error('Search error:', error);
+    }
+  };
+
+  const handleReverseGeocode = async () => {
+    try {
+      const lat = parseFloat(latitude);
+      const lon = parseFloat(longitude);
+      
+      if (isNaN(lat) || isNaN(lon)) {
+        console.error('Invalid coordinates');
+        return;
+      }
+      
+      const result = await reverseGeocode({ latitude: lat, longitude: lon });
+      console.log('Reverse Geocode Result:', JSON.stringify(result, null, 2));
+      setReverseGeocodeResult(result);
+    } catch (error) {
+      console.error('Reverse geocode error:', error);
+      setReverseGeocodeResult(null);
     }
   };
 
@@ -93,20 +147,153 @@ export default function App() {
     );
   };
 
+  const renderReverseGeocodeResult = () => {
+    if (!reverseGeocodeResult) {
+      return null;
+    }
+
+    const { formattedAddress, placemark } = reverseGeocodeResult;
+    const { coordinate, countryCode, postalCode, administrativeArea, subAdministrativeArea, locality, subLocality, thoroughfare, subThoroughfare, country, name, region, timeZone } = placemark;
+
+    return (
+      <View style={styles.resultContainer}>
+        <Text style={styles.resultTitle}>Reverse Geocode Result</Text>
+        
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Formatted Address:</Text>
+          <Text style={styles.text}>{formattedAddress}</Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Coordinates:</Text>
+          <Text style={styles.text}>Latitude: {coordinate.latitude}</Text>
+          <Text style={styles.text}>Longitude: {coordinate.longitude}</Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Address Details:</Text>
+          {name && <Text style={styles.text}>Name: {name}</Text>}
+          {thoroughfare && <Text style={styles.text}>Street: {thoroughfare} {subThoroughfare || ''}</Text>}
+          {subLocality && <Text style={styles.text}>Sub-locality: {subLocality}</Text>}
+          {locality && <Text style={styles.text}>Locality: {locality}</Text>}
+          {subAdministrativeArea && <Text style={styles.text}>Sub-administrative Area: {subAdministrativeArea}</Text>}
+          {administrativeArea && <Text style={styles.text}>Administrative Area: {administrativeArea}</Text>}
+          {postalCode && <Text style={styles.text}>Postal Code: {postalCode}</Text>}
+          {country && <Text style={styles.text}>Country: {country}</Text>}
+          {countryCode && <Text style={styles.text}>Country Code: {countryCode}</Text>}
+          {timeZone && <Text style={styles.text}>Time Zone: {timeZone}</Text>}
+        </View>
+
+        {region && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Region:</Text>
+            <Text style={styles.text}>Center: {region.center.latitude}, {region.center.longitude}</Text>
+            <Text style={styles.text}>Radius: {region.radius}m</Text>
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  const renderRouteExampleResult = () => {
+    if (isRouteLoading) {
+      return (
+        <View style={styles.resultContainer}>
+          <Text style={styles.resultTitle}>Route Example</Text>
+          <Text style={styles.text}>Loading route...</Text>
+        </View>
+      );
+    }
+
+    if (routeError) {
+      return (
+        <View style={styles.resultContainer}>
+          <Text style={styles.resultTitle}>Route Example</Text>
+          <Text style={styles.text}>Error: {routeError}</Text>
+        </View>
+      );
+    }
+
+    if (routes.length === 0) {
+      return null;
+    }
+
+    const firstRoute = routes[0];
+
+    return (
+      <View style={styles.resultContainer}>
+        <Text style={styles.resultTitle}>Route Example</Text>
+        <ExpoAppleMapkitView
+          style={styles.routeMap}
+          origin={routeOrigin}
+          destination={routeDestination}
+          routeCoordinates={routeCoordinates}
+        />
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Summary:</Text>
+          <Text style={styles.text}>Routes found: {routes.length}</Text>
+          <Text style={styles.text}>Stops: {routeStops.length}</Text>
+          <Text style={styles.text}>Distance: {(firstRoute.distance / 1000).toFixed(2)} km</Text>
+          <Text style={styles.text}>Travel time: {Math.round(firstRoute.expectedTravelTime / 60)} min</Text>
+          <Text style={styles.text}>Route name: {firstRoute.name || 'Unnamed route'}</Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>First 5 Steps:</Text>
+          {firstRoute.steps.slice(0, 5).map((step, index) => (
+            <Text key={`step-${index}`} style={styles.text}>
+              {index + 1}. {step.instructions || 'Continue'} ({Math.round(step.distance)}m)
+            </Text>
+          ))}
+        </View>
+      </View>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.searchContainer}>
-        <Text style={styles.label}>Search Location (Sample Region: 15.152870, 120.599335)</Text>
-        <TextInput 
-          value={query} 
-          onChangeText={setQuery} 
-          placeholder="e.g., restaurants, coffee shops, hotels"
-          style={styles.input}
-        />
-        <Button title="Search" onPress={handleSearch} />
-        <Text style={styles.resultCount}>{results.length} result(s) found</Text>
-      </View>
       <ScrollView style={styles.scrollView}>
+        <View style={styles.searchContainer}>
+          <Text style={styles.label}>Get Route Example with Stops (SM City Clark to 2 stops to MarQuee Mall)</Text>
+          <Button title="Get Route" onPress={getRouteHandler} />
+        </View>
+
+        {renderRouteExampleResult()}
+
+        <View style={styles.searchContainer}>
+          <Text style={styles.label}>Search Location (Sample Region: 15.152870, 120.599335)</Text>
+          <TextInput 
+            value={query} 
+            onChangeText={setQuery} 
+            placeholder="e.g., restaurants, coffee shops, hotels"
+            style={styles.input}
+          />
+          <Button title="Search" onPress={handleSearch} />
+          <Text style={styles.resultCount}>{results.length} result(s) found</Text>
+        </View>
+
+        <View style={styles.searchContainer}>
+          <Text style={styles.label}>Reverse Geocoding</Text>
+          <Text style={styles.sectionTitle}>Enter coordinates to get address:</Text>
+          <TextInput 
+            value={latitude} 
+            onChangeText={setLatitude} 
+            placeholder="Latitude (e.g., 15.152870)"
+            style={styles.input}
+            keyboardType="numeric"
+          />
+          <TextInput 
+            value={longitude} 
+            onChangeText={setLongitude} 
+            placeholder="Longitude (e.g., 120.599335)"
+            style={styles.input}
+            keyboardType="numeric"
+          />
+          <Button title="Reverse Geocode" onPress={handleReverseGeocode} />
+        </View>
+
+        {renderReverseGeocodeResult()}
+        
         {results.map((result, index) => renderResult(result, index))}
       </ScrollView>
     </SafeAreaView>
@@ -156,6 +343,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  routeMap: {
+    width: '100%',
+    height: 220,
+    borderRadius: 8,
+    marginBottom: 12,
+    overflow: 'hidden',
   },
   resultTitle: {
     fontSize: 18,

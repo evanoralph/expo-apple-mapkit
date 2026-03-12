@@ -49,12 +49,14 @@ export interface Coordinate {
 export interface RouteOptions {
   transportType?: 'automobile' | 'walking' | 'transit' | 'any';
   requestsAlternateRoutes?: boolean;
+  stops?: Coordinate[];
 }
 
 export interface RouteStep {
   instructions: string;
   distance: number;
   transportType: string;
+  legIndex?: number;
   coordinate: Coordinate;
   polyline: Coordinate[];
 }
@@ -66,6 +68,9 @@ export interface Route {
   steps: RouteStep[];
   polyline: Coordinate[];
   advisoryNotices?: string[];
+  legsCount?: number;
+  usedStopsCount?: number;
+  note?: string;
 }
 
 export interface ReverseGeocodeResult {
